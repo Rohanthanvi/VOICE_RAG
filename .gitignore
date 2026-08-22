@@ -1,0 +1,17 @@
+venv/
+.env
+__pycache__/
+*.pyc
+*.log
+src/*.m4a
+chroma_db/
+data/processed/bm25_cache/
+chroma_db_e5/
+chroma_db_e5_controlled/
+chroma_db_e5_test/
+data/processed/controlled_eval_10k.jsonl
+data/processed/*_report.json
+data/processed/embedding_model_latency.json
+
+data/processed/chunks_hi.jsonl
+data/raw/msmarco_hi_train_5000.jsonl

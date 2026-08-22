@@ -1,0 +1,17 @@
+datasets>=2.19.0
+huggingface_hub>=0.23.0
+pandas>=2.2.0
+pyarrow>=16.0.0
+tqdm>=4.66.0
+python-dotenv>=1.0.0
+
+# Added in later days (chunking / vector DB / STT / generation)
+chromadb
+sentence-transformers
+elevenlabs
+openai  # or groq / whichever LLM you pick for generation
+groq  # optional, if you want to use Groq for generation
+tenacity
+pydantic
+numpy 
+streamlit
