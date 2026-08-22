@@ -1,17 +1,54 @@
+# Python
 venv/
-.env
+.venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
 *.log
+
+# Local audio recordings
 src/*.m4a
+src/*.mp3
+src/*.wav
+src/*.ogg
+src/*.webm
+temp_audio/
+
+# Python tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ============================================================
+# EXPERIMENTAL / NON-PRODUCTION CHROMA DATABASES
+# ============================================================
+
 chroma_db/
-data/processed/bm25_cache/
-chroma_db_e5/
 chroma_db_e5_controlled/
 chroma_db_e5_test/
+
+# ============================================================
+# DO NOT IGNORE THESE:
+#
+# chroma_db_e5/
+# data/processed/bm25_cache/
+#
+# They are required by the production RAG pipeline.
+# ============================================================
+
+# Evaluation / benchmark outputs
 data/processed/controlled_eval_10k.jsonl
 data/processed/*_report.json
 data/processed/embedding_model_latency.json
 
+# Large source datasets not required by production runtime
 data/processed/chunks_hi.jsonl
 data/raw/msmarco_hi_train_5000.jsonl

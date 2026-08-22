@@ -1,2 +1,7 @@
+# ============================================================
+# Git LFS — Production RAG Assets
+# ============================================================
+# Production E5 Chroma database
+chroma_db_e5/** filter=lfs diff=lfs merge=lfs -text
+# Production BM25 index
 data/processed/bm25_cache/bm25_index.pkl filter=lfs diff=lfs merge=lfs -text
-chroma_db/** filter=lfs diff=lfs merge=lfs -text
