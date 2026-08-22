@@ -160,6 +160,10 @@ _lexical_inverted_index: dict[
     list[str],
 ] = defaultdict(list)
 
+# True when the cloud environment cannot access the JSONL lexical corpus.
+# In that case we safely fall back to E5/Chroma retrieval instead of crashing.
+_lexical_fallback_to_dense = False
+
 
 # ============================================================
 # TEXT NORMALIZATION
@@ -369,131 +373,167 @@ def load_lexical_corpus() -> None:
     """
     Load chunks_hi.jsonl and build a lightweight inverted index.
 
-    This is intentionally used instead of the 352 MB BM25 pickle
-    in Cloud mode.
+    Cloud-safe behavior:
+      1. If chunks_hi.jsonl is available, load it normally.
+      2. If it is missing, unavailable, or still an unresolved Git-LFS
+         pointer, do NOT crash the application.
+      3. Mark lexical retrieval as unavailable and let the cloud pipeline
+         fall back to E5/Chroma retrieval.
 
-    Expected format:
-
-        {"chunk_id": "...", "text": "...", ...}
-
-    The loader also tolerates alternative common field names.
+    This is intentionally used instead of the large BM25 pickle in Cloud.
     """
 
     global _lexical_loaded
     global _lexical_documents
     global _lexical_metadata
     global _lexical_inverted_index
+    global _lexical_fallback_to_dense
 
     if _lexical_loaded:
         return
 
-    if not LEXICAL_CORPUS.exists():
-
-        raise FileNotFoundError(
-            "Lexical corpus not found:\n"
-            f"{LEXICAL_CORPUS}"
-        )
-
     print("=" * 70)
     print("Loading lightweight lexical corpus")
-    print(
-        f"Corpus: {LEXICAL_CORPUS}"
-    )
+    print(f"Corpus: {LEXICAL_CORPUS}")
     print("=" * 70)
+
+    # ------------------------------------------------------------
+    # Cloud-safe fallback
+    # ------------------------------------------------------------
+    if not LEXICAL_CORPUS.exists():
+        print("WARNING: Lightweight lexical corpus is not available.")
+        print(f"Missing file: {LEXICAL_CORPUS}")
+        print("Falling back to E5 + Chroma retrieval.")
+        _lexical_fallback_to_dense = True
+        _lexical_loaded = True
+        return
+
+    # Git LFS pointer files are tiny text files containing:
+    # version https://git-lfs.github.com/spec/v1
+    try:
+        file_size = LEXICAL_CORPUS.stat().st_size
+        if file_size < 1024:
+            with open(
+                LEXICAL_CORPUS,
+                "r",
+                encoding="utf-8",
+                errors="replace",
+            ) as probe:
+                first_line = probe.readline().strip()
+
+            if first_line.startswith(
+                "version https://git-lfs.github.com/spec/v1"
+            ):
+                print(
+                    "WARNING: chunks_hi.jsonl is only a Git-LFS pointer "
+                    "in this environment."
+                )
+                print("The real LFS object was not downloaded.")
+                print("Falling back to E5 + Chroma retrieval.")
+                _lexical_fallback_to_dense = True
+                _lexical_loaded = True
+                return
+    except OSError as exc:
+        print(f"WARNING: Could not inspect lexical corpus: {exc}")
+        print("Falling back to E5 + Chroma retrieval.")
+        _lexical_fallback_to_dense = True
+        _lexical_loaded = True
+        return
 
     import json
 
     count = 0
 
-    with open(
-        LEXICAL_CORPUS,
-        "r",
-        encoding="utf-8",
-    ) as f:
+    try:
+        with open(
+            LEXICAL_CORPUS,
+            "r",
+            encoding="utf-8",
+        ) as f:
 
-        for line in f:
+            for line in f:
+                line = line.strip()
 
-            line = line.strip()
+                if not line:
+                    continue
 
-            if not line:
-                continue
+                try:
+                    record = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
 
-            try:
-
-                record = json.loads(
-                    line
-                )
-
-            except json.JSONDecodeError:
-
-                continue
-
-            # ------------------------------------------------
-            # Find ID
-            # ------------------------------------------------
-
-            chunk_id = (
-                record.get("chunk_id")
-                or record.get("id")
-                or record.get("passage_id")
-            )
-
-            if chunk_id is None:
-
+                # ------------------------------------------------
+                # Find ID
+                # ------------------------------------------------
                 chunk_id = (
-                    f"lexical_{count}"
+                    record.get("chunk_id")
+                    or record.get("id")
+                    or record.get("passage_id")
                 )
 
-            chunk_id = str(
-                chunk_id
-            )
+                if chunk_id is None:
+                    chunk_id = f"lexical_{count}"
 
-            # ------------------------------------------------
-            # Find text
-            # ------------------------------------------------
+                chunk_id = str(chunk_id)
 
-            text = (
-                record.get("text")
-                or record.get("contents")
-                or record.get("content")
-                or record.get("passage")
-                or ""
-            )
-
-            text = str(text)
-
-            if not text.strip():
-                continue
-
-            # ------------------------------------------------
-            # Store
-            # ------------------------------------------------
-
-            _lexical_documents[
-                chunk_id
-            ] = text
-
-            _lexical_metadata[
-                chunk_id
-            ] = record
-
-            # ------------------------------------------------
-            # Build inverted index
-            # ------------------------------------------------
-
-            unique_tokens = set(
-                tokenize(text)
-            )
-
-            for token in unique_tokens:
-
-                _lexical_inverted_index[
-                    token
-                ].append(
-                    chunk_id
+                # ------------------------------------------------
+                # Find text
+                # ------------------------------------------------
+                text = (
+                    record.get("text")
+                    or record.get("contents")
+                    or record.get("content")
+                    or record.get("passage")
+                    or ""
                 )
 
-            count += 1
+                text = str(text)
+
+                if not text.strip():
+                    continue
+
+                # ------------------------------------------------
+                # Store
+                # ------------------------------------------------
+                _lexical_documents[chunk_id] = text
+                _lexical_metadata[chunk_id] = record
+
+                # ------------------------------------------------
+                # Build inverted index
+                # ------------------------------------------------
+                unique_tokens = set(tokenize(text))
+
+                for token in unique_tokens:
+                    _lexical_inverted_index[token].append(chunk_id)
+
+                count += 1
+
+    except (OSError, UnicodeError) as exc:
+        print(
+            "WARNING: Failed to load lightweight lexical corpus:"
+        )
+        print(f"{type(exc).__name__}: {exc}")
+        print("Falling back to E5 + Chroma retrieval.")
+
+        _lexical_documents.clear()
+        _lexical_metadata.clear()
+        _lexical_inverted_index.clear()
+
+        _lexical_fallback_to_dense = True
+        _lexical_loaded = True
+        return
+
+    # A valid JSONL file that contains no readable documents is also treated
+    # as unavailable rather than allowing the app to start with a broken index.
+    if count == 0:
+        print(
+            "WARNING: Lexical corpus contained no readable documents."
+        )
+        print("Falling back to E5 + Chroma retrieval.")
+
+        _lexical_fallback_to_dense = True
+        _lexical_loaded = True
+        return
 
     _lexical_loaded = True
 
@@ -531,6 +571,9 @@ def lexical_search(
     """
 
     load_lexical_corpus()
+
+    if _lexical_fallback_to_dense:
+        return []
 
     query_norm = normalize_text(
         query_text
@@ -1878,10 +1921,18 @@ def warmup() -> None:
 
         load_lexical_corpus()
 
-        print(
-            "E5 + lightweight lexical "
-            "retrieval ready."
-        )
+        if _lexical_fallback_to_dense:
+            print(
+                "Lightweight lexical corpus unavailable."
+            )
+            print(
+                "E5 + Chroma fallback retrieval ready."
+            )
+        else:
+            print(
+                "E5 + lightweight lexical "
+                "retrieval ready."
+            )
 
     elapsed_ms = (
         time.perf_counter()
