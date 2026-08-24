@@ -2,61 +2,125 @@
 
 ### Hacker House Goa 2026
 
-**Hindi Voice → Speech-to-Text → E5 Retrieval + Lightweight Lexical Retrieval → Grounded Answer**
+**Hindi Voice → Speech-to-Text → E5 Semantic Retrieval + Lightweight Lexical Retrieval → Hybrid Ranking → Grounded Answer**
 
-RAGInGoa is a production-oriented Hindi Voice Retrieval-Augmented Generation (RAG) system designed to answer questions from a large Hindi passage corpus.
-
-The system combines:
-
-- 🎙️ Voice input
-- 🗣️ Speech-to-Text (STT)
-- 🔎 Multilingual E5 semantic retrieval
-- ⚡ Lightweight lexical retrieval
-- 🔀 Hybrid ranking
-- 🛡️ Grounding and guardrails
-- 🤖 Grounded answer generation
-- 📊 Retrieval and latency evaluation
-- ☁️ Streamlit Cloud deployment
-
----
+RAGInGoa is a Hindi-first Voice Retrieval-Augmented Generation (RAG) system that allows users to ask questions naturally in Hindi using voice or text and receive concise, grounded answers from a large Hindi knowledge corpus.
 
 ## 🌐 Live Demo
 
-The application is deployed using Streamlit Cloud.
+🚀 **Live Application:**  
+https://voicerag-kwfsigsmmsysj6dhyudkza.streamlit.app/
 
-**Live application:**
-
-`https://voicerag-kwfsigsmmsysj6dhyudkza.streamlit.app/`
-
-> If the application is temporarily sleeping, the first request may take longer because the hosted environment needs to initialize the model and retrieval components.
+🔗 **GitHub Repository:**  
+https://github.com/Rohanthanvi/VOICE_RAG
 
 ---
 
-# 🎯 Problem Statement
+# 🎯 Project Overview
 
-Most RAG systems are optimized primarily for English text.
+Traditional RAG systems often rely only on semantic vector search. However, semantic similarity can sometimes retrieve passages that are related to a query but do not contain the exact answer.
 
-RAGInGoa focuses on a Hindi voice-first retrieval pipeline where a user can ask a question naturally in Hindi and receive a concise grounded answer.
+RAGInGoa addresses this by combining:
 
-For example:
+- 🎙️ Hindi Voice Input
+- 🗣️ Speech-to-Text
+- 🔎 Multilingual E5 Semantic Retrieval
+- ⚡ Lightweight Lexical Retrieval
+- 🔀 Reciprocal Rank Fusion (RRF)
+- 🧠 Relevance Boosting
+- 🛡️ Grounding and Guardrails
+- 🤖 Grounded Answer Generation
+- 📊 Retrieval Evaluation
+- ⏱️ Latency Benchmarking
+- ☁️ Streamlit Cloud Deployment
 
-> भारत की राजधानी क्या है?
+The result is an end-to-end Hindi Voice RAG pipeline.
 
-The system processes the question through:
+---
+
+# 🧠 System Architecture
 
 ```text
-Voice
-  ↓
-Speech-to-Text
-  ↓
-Hindi Query
-  ↓
-Semantic Retrieval
-  +
-Lexical Retrieval
-  ↓
-Hybrid Ranking
-  ↓
-Relevant Hindi Passages
-  ↓
-Grounded Answer
+                    🎙️ USER VOICE
+                          │
+                          ▼
+                 ┌─────────────────┐
+                 │ Speech-to-Text  │
+                 │      (STT)      │
+                 └────────┬────────┘
+                          │
+                          ▼
+                   Hindi Text Query
+                          │
+                ┌─────────┴─────────┐
+                │                   │
+                ▼                   ▼
+        ┌──────────────┐     ┌──────────────┐
+        │ E5 Semantic  │     │   Lexical    │
+        │  Retrieval   │     │  Retrieval   │
+        └──────┬───────┘     └──────┬───────┘
+               │                    │
+               ▼                    ▼
+          ChromaDB             Token Matching
+               │                    │
+               └─────────┬──────────┘
+                         ▼
+                 Hybrid Ranking
+                         │
+                         ▼
+                  RRF + Relevance
+                     Boosting
+                         │
+                         ▼
+                    Top-K Context
+                         │
+                         ▼
+                  Grounded Answer
+                     Generation
+                         │
+                         ▼
+                  🗣️ Hindi Answer
+
+
+🔬 Retrieval Stress Tests
+भारत की राजधानी क्या है?
+
+भारत की वित्तीय राजधानी कौन सी है?
+
+किस देश की राजधानी बुडापेस्ट है?
+
+डेनमार्क की राजधानी कहाँ है?
+
+चिली की राजधानी कौन सी है?
+
+दिल्ली में कौन-कौन सी भाषाएँ बोली जाती हैं?
+
+भारत में सबसे बड़े शहर कौन से हैं?
+
+
+Recommended Voice Demo
+
+For the live demonstration, use natural Hindi speech.
+
+Recommended questions:
+भारत की राजधानी क्या है?
+
+भारत की वित्तीय राजधानी कौन सी है?
+
+दिल्ली में कौन सी भाषा सबसे ज्यादा बोली जाती है?
+
+डेनमार्क की राजधानी क्या है?
+
+चिली की राजधानी कौन सी है?
+
+👨‍💻 Author
+
+Rohan Narendra Thanvi
+
+B.Tech — Computer Science & Engineering
+
+Project: RAGInGoa — Hindi Voice RAG
+
+If you find this project useful, consider giving the repository a ⭐ star.
+
+
