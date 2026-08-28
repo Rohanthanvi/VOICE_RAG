@@ -117,6 +117,9 @@ Recommended questions:
 
 Rohan Narendra Thanvi
 
+👨‍💻 Co-Author
+Khyati Sinha
+
 B.Tech — Computer Science & Engineering
 
 Project: RAGInGoa — Hindi Voice RAG
