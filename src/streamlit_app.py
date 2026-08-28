@@ -66,7 +66,7 @@ from harness import (  # noqa: E402
 # ============================================================
 
 st.set_page_config(
-    page_title="RAGInGoa — Hindi Voice RAG",
+    page_title=" Hindi Voice RAG",
     page_icon="🎙️",
     layout="wide",
 )
@@ -440,6 +440,6 @@ with tab_text:
 st.divider()
 
 st.caption(
-    "RAGInGoa · Production Hybrid E5 + BM25 · "
+    " · Production Hybrid E5 + BM25 · "
     "Hindi Voice RAG"
 )
